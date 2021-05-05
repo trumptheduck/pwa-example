@@ -586,19 +586,19 @@
     class InstallPrompt {
         constructor () {
             this.event = null;
-            window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            this.event = e;
-            console.log(this.event.prompt);
-            });
             this.show = async () => {
                 this.event.prompt();
                 const outcome = await this.event.userChoice;
             }
+            window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.event = e;
+            console.log(this.event.prompt);
+            this.show();
+            });
         }
     }
     var installPrompt = new InstallPrompt()
-    installPrompt.show()
     class NavigationBar{
         constructor() {
             this.element = document.getElementById('nav-bar');
