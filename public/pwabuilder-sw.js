@@ -13,26 +13,32 @@ self.addEventListener("message", (event) => {
     self.skipWaiting();
   }
 });
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const preloadResp = await event.preloadResponse;
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    fetch(event.request)
+      .catch(() => {
+        return caches.open(HTML_CACHE)
+          .then((cache) => {
+            return cache.match(event.request)
+          })
+      })
+  )
+})
 
-        if (preloadResp) {
-          return preloadResp;
-        }
-
-        const networkResp = await fetch(event.request);
-        return networkResp;
-      } catch (error) {
-        const cache = await caches.open(CACHE);
-        const cachedResp = await cache.match(event.request);
-        return cachedResp;
-      }
-    })());
-  }
-});
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys()
+      .then((keyList) => {
+        return Promise.all(keyList.map((key) => {
+          if (key !== HTML_CACHE) {
+            console.log('[ServiceWorker] Removing old cache', key)
+            return caches.delete(key)
+          }
+        }))
+      })
+      .then(() => self.clients.claim())
+  )
+})
 workbox.routing.registerRoute(
   ({event}) => event.request.destination === 'document',
   new workbox.strategies.NetworkFirst({
