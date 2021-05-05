@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DOCX XLS Table Insert Tool</title>
+    <meta charset="utf-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+        crossorigin="anonymous">
+  </head>
+  <style>
+    body {
+      margin-left: 30px;
+    }
+.wrapper {
+    position: relative;
+  width: 200px;
+  height: 30px;
+  transform: scale(0.5,0.5);
+  display: none;
+}
+.wrapper.active {
+    display: block;
+}
+.wrapper {
+  position: relative;
+  background: #e7f0f7;
+}
+.progressbar {
+  display: block;
+  position: absolute;
+  z-index: 9;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+  width: 400px;
+  height: 30px;
+}
+.progressbar::before,
+.progressbar::after {
+  content: '';
+  display: block;
+  position: absolute;
+  z-index: 99;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+  background-image: linear-gradient(90deg, #e91e63 0%, #e91e63 20%, #03a9f4 20%, #03a9f4 40%, #8bc34a 40%, #8bc34a 60%, #ffeb3b 60%, #ffeb3b 80%, #ff5722 80%, #ff5722 100%);
+  background-position: 0 0;
+  background-repeat: repeat-x;
+  animation: movebar 5s linear infinite;
+}
+.progressbar::before {
+  box-shadow: 0 6px 10px 0 rgba(0,0,0,0.1);
+}
+.progressbar::after {
+  z-index: 9;
+  top: 6px;
+  filter: blur(16px);
+  opacity: 0.7;
+}
+.stylization {
+  position: absolute;
+  z-index: 999;
+  height: 4px;
+  width: 90%;
+  left: 5%;
+  top: 6px;
+  opacity: 0.3;
+}
+.stylization::before,
+.stylization::after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 4px;
+  top: 0;
+  border-radius: 2px;
+}
+.stylization::before {
+  background: #fff;
+  left: 0;
+  right: 10px;
+}
+.stylization::after {
+  width: 6px;
+  background: #fff;
+  right: 0;
+}
+@-moz-keyframes movebar {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+@-webkit-keyframes movebar {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+@-o-keyframes movebar {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+@keyframes movebar {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+
+  </style>
+  <body>
+    <p></p>
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button class="btn btn-success" id="authorize_button" style="display: none;">Sign in with Google</button>
+    <button class="btn btn-danger" id="signout_button" style="display: none;">Sign Out</button>
+    <div id="upload">
+      <button class="btn btn-success" onclick="Export2Word('preview');">Lưu tài liệu</button>
+              <div class="conatiner mt-5">
+                <div class="row">
+                    <div class="col-md-3"></div>
+                    <div class="col-md-3">
+                      <label>Chọn file excel </label>
+                        <input class="form-control" type="file" id="input" accept=".xls,.xlsx"  >
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-success" id="insertNoDelete">Nhập dữ liệu(Không xóa)</button>
+                        <button class="btn btn-warning" id="insertDelete">Nhập dữ liệu (Xóa DL cũ)</button>
+                    </div>
+        <div class="col-md-12">
+            <pre id="jsondata"></pre>
+        </div>
+        <h1>Chọn tài liệu để sửa</h1><br>
+        <input type="file" placeholder='file' id='fileToUpload' class="form-control" >
+        <button id='uploadFile' class="btn btn-primary">Load file</button>
+      </div>
+      <div id="loading" class="wrapper">
+        <div class="progressbar">
+            <div class="stylization"></div>
+        </div>
+    </div>
+      <div id="preview">
+
+      </div>
+      <script src="/views/format.js"></script>
+      <script src="/views/word.js"></script>
+    <script type="text/javascript">
+    const config = {
+        CLIENT_ID : '791670117361-uhgb5hhvjmbapa5kk2lqcc4qsqgr0jfl.apps.googleusercontent.com',
+        API_KEY : 'AIzaSyDOmRVwwVV2JB210WaI61WDLd_5_1S3mds',
+        DISCOVERY_DOCS : ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+        SCOPES : 'https://www.googleapis.com/auth/drive.file',
+    }
+        class GoogleOAUTH {
+            constructor(config) {
+                this.CLIENT_ID = config.CLIENT_ID
+                this.API_KEY = config.API_KEY
+                this.DISCOVERY_DOCS = config.DISCOVERY_DOCS
+                this.SCOPES = config.SCOPES
+                this.authorizeButton = document.getElementById('authorize_button');
+                this.signoutButton = document.getElementById('signout_button');
+                this.onLogin = ()=>{};
+                this.appendPre=(message)=>{
+                    var pre = document.getElementById('content');
+                    var textContent = document.createTextNode(message + '\n');
+                    pre.appendChild(textContent);
+                }
+                this.handleAuthClick=(event)=>{
+                    gapi.auth2.getAuthInstance().signIn();
+                }
+                this.handleSignoutClick=(event)=>{
+                    gapi.auth2.getAuthInstance().signOut();
+                }
+                this.updateSigninStatus = (isSignedIn)=>{
+                    if (isSignedIn) {
+                    this.authorizeButton.style.display = 'none';
+                    this.signoutButton.style.display = 'block';
+                    this.onLogin();
+                    } else {
+                    this.authorizeButton.style.display = 'block';
+                    this.signoutButton.style.display = 'none';
+                    }
+                }
+                this.initClient = ()=>{
+                    gapi.client.init({
+                    apiKey: this.API_KEY,
+                    clientId: this.CLIENT_ID,
+                    discoveryDocs: this.DISCOVERY_DOCS,
+                    scope: this.SCOPES
+                    }).then(()=>{
+                    // Listen for sign-in state changes.
+                    gapi.auth2.getAuthInstance().isSignedIn.listen(this.updateSigninStatus);
+
+                    // Handle the initial sign-in state.
+                    this.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                    this.authorizeButton.onclick = this.handleAuthClick;
+                    this.signoutButton.onclick = this.handleSignoutClick;
+                    }, function(error) {
+                      console.log(error)
+                    });
+                }
+                this.handleClientLoad=()=>{
+                    gapi.load('client:auth2', this.initClient);
+                }
+            }
+        }
+        class oFileManager{
+            constructor() {
+                this.loadingBar = document.getElementById('loading')
+                this.toggleLoadingBar = (isActive)=>{
+                    if (isActive) {
+                        this.loadingBar.classList.add('active');
+                    } else {
+                        this.loadingBar.classList.remove('active');
+                    }
+                } 
+                this.previewElement = document.getElementById('preview')
+                this.uploadFile = (id) => {
+                    this.toggleLoadingBar(true)
+                    let input = document.getElementById(id)
+                    let ftu = input.files[0];
+                    let file = new Blob([ftu]); 
+                    gapi.client.drive.files.create({
+                        'content-type': 'application/json',
+                        uploadType: 'multipart',
+                        name: ftu.name,
+                        mimeType: 'application/vnd.google-apps.document',
+                        fields: 'id, name, kind, size'
+                    }).then(apiResponse => {
+                        this.previewElement.innerHTML= 'Uploading...'
+                        fetch(`https://www.googleapis.com/upload/drive/v3/files/${apiResponse.result.id}`, {
+                        method: 'PATCH',
+                        headers: new Headers({
+                            'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
+                            'Content-Type': ftu.type
+                        }),
+                        body: file
+                    }).then(res => {
+                        var rawURL = res.url;
+                        var token = rawURL.replace("https://www.googleapis.com/upload/drive/v3/files/","")
+                        this.previewElement.innerHTML= `File Convert Succesful! Token: ${token}`
+                        var request = gapi.client.drive.files.export({ // Read more about export at https://developers.google.com/drive/v3/reference/files/export#http-request
+                            'fileId': token,
+                            'mimeType': 'text/html'
+                        })
+                        var fulfilledCallback = (fulfilled) => { // What to do when the request is fulfilled
+                            this.toggleLoadingBar(false)
+                            console.log("Request fulfilled!", fulfilled);
+                            console.log(fulfilled.body); // Stick the response body into the page — fulfilled.body should be where the text is
+                            var rawHTML = fulfilled.body;
+                            var html = formatHTML(rawHTML)
+                            var html = markdownTables(html)
+                            this.previewElement.innerHTML = html;
+                            var delRequest = gapi.client.drive.files.delete({
+                                'fileId': token
+                            });
+                            delRequest.execute(function(resp) {console.log(resp)});
+                        };
+                        var rejectedCallback = function(rejected) { // What to do when the request is rejected
+                            this.toggleLoadingBar(false)
+                            this.previewElement.innerHTML= `Request rejected! ${rejected}`
+                        };
+
+                        // Make the request — For some reason using .execute instead of .then doesn't work; their API docs (https://developers.google.com/api-client-library/javascript/reference/referencedocs#gapiclientrequest) recommend using .then
+                        request.then(fulfilledCallback, rejectedCallback)
+                    });
+                })
+                }
+            }
+        }
+      var googleOAuth = new GoogleOAUTH(config)
+      var FileManager = new oFileManager()
+      googleOAuth.onLogin=()=>{
+          console.log("LOGIN SUCCESSFULLY")
+      }
+      document.getElementById("uploadFile").addEventListener('click',()=>{
+        FileManager.uploadFile('fileToUpload')
+      })
+
+      class Table {
+        constructor(){
+            this.element = document.getElementById('preview');
+            this.table = null;
+            this.clearNullRow = (table) =>{
+              table.querySelector('TBODY').querySelectorAll('tr').forEach(row=>{
+                var empty = true;
+                row.querySelectorAll('SPAN').forEach(span=>{
+                  if (span.innerHTML !== '') {empty = false};
+                })
+                if (empty) {row.remove()}
+              })
+            }
+            this.getTableStyle = (table)=>{
+              var cssTD = getComputedStyleCSSText(table.querySelectorAll('TD')[0])
+              //var cssTH = getComputedStyle(table.querySelectorAll('TH')[0]).cssText
+              var cssTR = getComputedStyleCSSText(table.querySelectorAll('TR')[0])
+              var cssTABLE = getComputedStyleCSSText(table)
+              
+              var styling = `<style>
+                th, td {${cssTD}}
+                th {font-weight: bold;}
+                tr {${cssTR}}
+                table {${cssTABLE}}
+                </style>`
+                return styling
+            }
+            this.renderTable= (data,propertyArray,deleteOldData=false)=>{
+                var style = this.getTableStyle(this.table)
+                var html = '';
+                var head = '';
+                var body = '';
+                console.log(Object.getOwnPropertyNames(data[0]))
+                propertyArray.forEach(property=>{
+                    if (property === "__rowNum__") {} else {
+                        head += `<td>${property}</td>
+                        `
+                    }
+                })
+                data.forEach(row=>{
+                    var rowHTML = ''
+                    propertyArray.forEach(property=>{
+                    if (property !== "__rowNum__") {
+                      if (row[property]===undefined) {
+                        rowHTML += `<td></td>
+                        `
+                      } else {
+                        rowHTML += `<td>${row[property]}</td>
+                          `
+                      }
+                    }
+                  })
+                    body += `<tr>
+                        ${rowHTML}
+                        </tr>
+                            `
+                })
+                if (deleteOldData) {
+                  html = `
+                ${style}
+                <tr>${head}</tr>
+                ${body}
+                `
+                } else {
+                  this.clearNullRow(this.table)
+                  html = `
+                  ${style}
+                ${body}
+                `
+                }
+                console.log(html)
+                this.table.querySelector('TBODY').innerHTML += html;
+            }
+        }
+    }
+    var table = new Table()
+    tableCallback = function(resultTable) {
+      table.table = resultTable;
+    }
+    let selectedFile;
+        console.log(window.XLSX);
+        document.getElementById('input').addEventListener("change", (event) => {
+            selectedFile = event.target.files[0];
+        })
+
+        let data=[{
+            "name":"jayanth",
+            "data":"scd",
+            "abc":"sdef"
+        }]
+        function get_header_row(sheet) {
+          var headers = [];
+          var range = XLSX.utils.decode_range(sheet['!ref']);
+          var C, R = range.s.r; /* start in the first row */
+          /* walk every column in the range */
+          for(C = range.s.c; C <= range.e.c; ++C) {
+              var cell = sheet[XLSX.utils.encode_cell({c:C, r:R})] /* find the cell in the first row */
+
+              var hdr = "UNKNOWN " + C; // <-- replace with your desired default 
+              if(cell && cell.t) hdr = XLSX.utils.format_cell(cell);
+
+              headers.push(hdr);
+          }
+          return headers;
+      }
+        document.getElementById('insertNoDelete').addEventListener("click", () => {
+            XLSX.utils.json_to_sheet(data, 'out.xlsx');
+            if(selectedFile){
+                let fileReader = new FileReader();
+                fileReader.readAsBinaryString(selectedFile);
+                fileReader.onload = (event)=>{
+                let data = event.target.result;
+                let workbook = XLSX.read(data,{type:"binary"});
+                console.log(workbook);
+                workbook.SheetNames.forEach(sheet => {
+                    let rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheet]);
+                    console.log(rowObject); 
+                    table.renderTable(rowObject,get_header_row(workbook.Sheets[sheet]))
+                });
+                }
+            }
+        });
+        document.getElementById('insertDelete').addEventListener("click", () => {
+            XLSX.utils.json_to_sheet(data, 'out.xlsx');
+            if(selectedFile){
+                let fileReader = new FileReader();
+                fileReader.readAsBinaryString(selectedFile);
+                fileReader.onload = (event)=>{
+                let data = event.target.result;
+                let workbook = XLSX.read(data,{type:"binary"});
+                console.log(workbook);
+                workbook.SheetNames.forEach(sheet => {
+                    let rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheet]);
+                    console.log(rowObject);
+                    table.renderTable(rowObject,get_header_row(workbook.Sheets[sheet]),true)
+                });
+                }
+            }
+        });
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js"
+      onload="this.onload=function(){};googleOAuth.handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+  </body>
+</html>
