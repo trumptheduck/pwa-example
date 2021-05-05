@@ -97,6 +97,7 @@
             border-radius: 5px;
             cursor: pointer;
             transition-duration: 0.4s;
+            user-select: none;
         }
         #main #wrapper .start:hover{
             filter: invert(1);
@@ -547,7 +548,7 @@
         <div id="wrapper">
             <p class="title">Learn programming on the go</p>
             <p class="desc">Run code on every platform. Free, forever</p>
-            <div id="learnmore" class="start">Learn more</div>
+            <div id="learnmore" class="start">Install Application</div>
         </div>
     </div>
     <div id="auth">
@@ -587,6 +588,9 @@
         constructor () {
             this.event = null;
             this.button = document.getElementById('learnmore')
+            if (window.matchMedia('(display-mode: standalone)').matches) {  
+                this.button.style.display = "none";
+            }  
             this.show = async () => {
                 this.event.prompt();
                 const outcome = await this.event.userChoice;
