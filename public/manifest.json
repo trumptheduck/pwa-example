@@ -1,12 +1,12 @@
 {
-    "name": "PWA Starter",
+    "name": "PWA Application",
     "display": "standalone",
     "start_url": "/",
-    "short_name": "starter",
+    "short_name": "Application",
     "theme_color": "#686bd2",
-    "description": "This is a PWA Starter app",
+    "description": "This is a PWA Starter application",
     "orientation": "any",
-    "background_color": "#686bd2",
+    "background_color": "#1a1a1a",
     "related_applications": [],
     "prefer_related_applications": false,
     "icons": [
