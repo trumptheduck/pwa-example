@@ -685,7 +685,7 @@
             var isFirefox = typeof InstallTrigger !== 'undefined';
 
             // Safari 3.0+ "[object HTMLElementConstructor]" 
-            var isSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && window['safari'].pushNotification));
+            var isSafari = (!!window.ApplePaySetupFeature || !!window.safari) && agentHas("Safari") && !agentHas("Chrome") && !agentHas("CriOS");
 
             // Internet Explorer 6-11
             var isIE = /*@cc_on!@*/false || !!document.documentMode;
@@ -694,7 +694,7 @@
             var isEdge = !isIE && !!window.StyleMedia;
 
             // Chrome 1 - 79
-            var isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
+            var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 
             // Edge (based on chromium) detection
             var isEdgeChromium = isChrome && (navigator.userAgent.indexOf("Edg") != -1);
@@ -715,9 +715,6 @@
             }
             this.show = async () => {
                 switch (this.checkForBrowser()) {
-                    case 0: 
-                        alert('Trình duyệt của bạn không hỗ trợ tính năng này, hãy mở page bằng Chrome hoặc Safari')
-                    break;
                     case 1:
                         this.event.prompt();
                         const outcome = await this.event.userChoice;
