@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../assets/vectors/console.svg">
     <title>Codify - Code everywhere, free, forever</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
         @font-face { font-family: Consolas; font-weight: italic; src: url("../assets/fonts/ConsolasI.ttf");}
         @font-face { font-family: Consolas; font-weight: bold; src: url("../assets/fonts/ConsolasB.ttf");}
@@ -519,7 +520,72 @@
             color: white;
             }
         }
-       
+        .bubble {
+            width: 96%;
+            height: 90%;
+            background-color: lightgray;
+            font-size: 1.25em;
+            border-radius: 0.5rem;
+        box-shadow:	0 0.125rem 0.5rem rgba(0, 0, 0, .3), 0 0.0625rem 0.125rem rgba(0, 0, 0, .2);
+        display: flex;
+        justify-content: center;
+        }
+
+        .bubble::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            top: 45px;
+            border: .75rem solid transparent;
+            border-bottom: none;
+            border-top-color: lightgray;
+        }
+        #install-ios {
+            opacity: 0.7    ;
+            position: fixed;
+            bottom: 40px;
+            left: 0%;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition-duration: 0.5s;
+            transform: translateY(300%);
+        }
+        #install-ios.active {
+            transform: translateY(0%);
+        }
+        #install-ios #prompt {
+            height: 60px;
+        }
+        #install-ios #prompt #icon{
+            filter: invert(0.5); 
+            font-size: 50px; 
+            position: absolute;
+            left: 12px;
+            top: -10px;
+        }
+        #install-ios #prompt #export {
+            position: absolute;
+            top: -10px;
+            left: 280px;
+            width: 26px;
+            height: 26px;
+            background-image: url(../assets/vectors/ios.svg);
+            background-size: auto auto; 
+            background-repeat: no-repeat;
+            margin: 0px;
+        }
+        #install-ios #prompt p {
+            position: absolute;
+            top: -20px;
+            left: 60px;
+            color: rgb(51, 51, 51);
+            font-size: 17px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -581,6 +647,13 @@
             </div>
         </div>
     </div>
+    <div id="install-ios">
+        <div id="prompt" class="bubble">
+            <span class="material-icons" id="icon">add_box</span>
+            <p id="text">Để cài đặt ứng dụng, hãy ấn:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;và chọn nút Thêm vào MH chính</p>
+            <div id="export"></div>
+        </div>
+    </div>
 </body>
 <script type="module" src="/views/pwabuilder-sw-register.js"></script>
 <script>
@@ -591,6 +664,7 @@
             if (window.matchMedia('(display-mode: standalone)').matches) {  
                 this.button.style.display = "none";
             }  
+            this.iosPrompt = document.getElementById("install-ios");
             this.checkIfiOS = () => {
                 return [
                     'iPad Simulator',
@@ -628,24 +702,33 @@
             // Blink engine detection
             var isBlink = (isChrome || isOpera) && !!window.CSS;
             console.log(isChrome,isSafari)
-                if (isChrome||isSafari) {
-                    return true;
+                if (isChrome) {
+                    return 1;
+                } else if (isSafari) {
+                    return 2;
                 } else {
-                    return false;
+                    return 0;
                 }
             }
-            this.show = async () => {
-                if (this.checkForBrowser()) {
-                    if (this.checkIfiOS()) {
+            this.showOnIphoneTest = () => {
 
-                    } else {
+            }
+            this.show = async () => {
+                switch (this.checkForBrowser()) {
+                    case 0: 
+                        alert('Trình duyệt của bạn không hỗ trợ tính năng này, hãy mở page bằng Chrome hoặc Safari')
+                    break;
+                    case 1:
                         this.event.prompt();
                         const outcome = await this.event.userChoice;
-                    }
-                } else {
-                    alert('Trình duyệt của bạn không hỗ trợ tính năng này, hãy mở page bằng Chrome hoặc Safari')
+                    break;
+                    case 2:
+                        this.iosPrompt.classList.add("active")
+                    break;
+                    default: 
+                        alert('Trình duyệt của bạn không hỗ trợ tính năng này, hãy mở page bằng Chrome hoặc Safari');
+                    return;
                 }
-
             }
             window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
